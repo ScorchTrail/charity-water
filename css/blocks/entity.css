@@ -1,0 +1,17 @@
+/* Entity animations and effects */
+.entity.moving {
+  transition: transform 0.15s ease;
+}
+
+.bucket.glowing {
+  animation: glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 5px var(--dark-blue);
+  }
+  to {
+    box-shadow: 0 0 20px var(--dark-blue);
+  }
+}

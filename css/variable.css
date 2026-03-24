@@ -1,0 +1,25 @@
+:root {
+  /* Official charity: water Color Palette */
+  --jerry-can-yellow: #ffc907;
+  --dark-blue: #003366;
+  --light-blue: #77a8bb;
+  --off-white: #fff7e1;
+  --charcoal: #1a1a1a;
+  --peach-tint: #fed8c1;
+  --terracotta: #bf6c46;
+  --light-gray: #cbccd1;
+  --white: #ffffff;
+
+  /* Design system tokens */
+  --background: hsl(45, 60%, 96%);
+  --foreground: hsl(220, 40%, 12%);
+  --card: hsl(0, 0%, 100%);
+  --primary: hsl(47, 100%, 48%);
+  --primary-foreground: hsl(220, 40%, 12%);
+  --secondary: hsl(45, 40%, 90%);
+  --muted: hsl(45, 30%, 88%);
+  --muted-foreground: hsl(220, 15%, 45%);
+  --border: hsl(45, 20%, 82%);
+  --font-inter: 'Inter', sans-serif;
+  --radius: 0.75rem;
+}

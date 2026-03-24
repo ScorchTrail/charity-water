@@ -1,0 +1,69 @@
+/* Game Board Tiles */
+.tile {
+  position: relative;
+  border: 1px solid rgba(26, 26, 26, 0.1);
+}
+
+.tile-0 {
+  /* Immovable mountain block */
+  background-color: #657383; /* mountain gray */
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.08) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 16px 16px;
+}
+
+.tile-1 {
+  /* Grass */
+  background-color: #90ee90; /* Light green for grass */
+}
+
+.tile-3 {
+  /* Dry Soil */
+  background-color: var(--terracotta);
+  border: 2px dashed var(--charcoal);
+}
+
+.tile-5 {
+  /* Watered Soil */
+  background-color: var(--light-blue);
+}
+
+.tile-6 {
+  /* Flower Field */
+  background-color: var(--light-blue);
+  background-image: radial-gradient(circle, #ffc907 2px, transparent 2px);
+  background-size: 10px 10px;
+}
+
+.tile-7 {
+  /* Contaminated Puddle */
+  background-color: var(--dark-blue);
+  border: 2px solid var(--charcoal);
+}
+
+/* Entity overlays */
+.entity {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  pointer-events: none;
+  transition: transform 0.2s ease;
+}
+
+.player {
+  color: var(--jerry-can-yellow);
+}

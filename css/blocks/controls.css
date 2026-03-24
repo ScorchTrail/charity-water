@@ -1,0 +1,5 @@
+/* Additional control styles if needed */
+.controls button:focus {
+  outline: 2px solid var(--jerry-can-yellow);
+  outline-offset: 2px;
+}
