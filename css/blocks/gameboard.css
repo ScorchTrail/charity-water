@@ -37,9 +37,20 @@
 }
 
 .tile-6 {
-  /* Contaminated Puddle */
+  /* Contaminated Puddle (now banana peel hazard) */
   background-color: #002f6c;
   border: 2px solid var(--charcoal);
+  color: #ffe135;
+  font-size: 1.75rem;
+}
+
+.tile-6::after {
+  content: '🍌';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
 }
 
 .tile-7 {

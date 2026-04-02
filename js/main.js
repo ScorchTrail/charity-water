@@ -10,11 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Start game immediately with default difficulty
   selectedDifficulty = 'easy';
   gameEngine.setDifficulty(selectedDifficulty);
-  gameEngine.initGame(levels[0]);
+
+  // Load saved level or start at level 0
+  const savedProgress = loadProgress();
+  gameEngine.initGame(levels[savedProgress.currentLevel]);
   isPlaying = true;
   startTimer();
   showNotification(
-    'Game started on Easy by default. Use difficulty controls at top to change anytime.',
+    `Game started on Easy. Level ${savedProgress.currentLevel + 1}. Use difficulty controls at top to change anytime.`,
     'info'
   );
 });

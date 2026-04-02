@@ -1,7 +1,7 @@
 {
   "editor.formatOnSave": true,
   "prettier.requireConfig": true,
-  "liveServer.settings.root": "/ui",
+  "liveServer.settings.root": "/",
   "liveServer.settings.port": 5500,
   "[html]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"

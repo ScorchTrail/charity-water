@@ -67,6 +67,7 @@
           <span class="score-moves__label">Time</span>
           <span class="score-moves__value" id="timer">--:--</span>
         </div>
+        <button id="undo-btn" class="circle-btn" aria-label="Undo move" title="Undo move">↶</button>
       </div>
 
       <div class="level-progress">
@@ -92,6 +93,8 @@
           <button class="dpad-btn" data-direction="down">↓</button>
         </div>
       </div>
+
+      <button id="mute-btn" class="floating-mute-btn" aria-label="Mute toggle">🔊</button>
     </main>
 
     <footer>
@@ -109,7 +112,17 @@
     <script src="js/main.js"></script>
 
     <!-- Audio elements -->
-    <audio id="bucket-audio" preload="auto"></audio>
-    <audio id="move-audio" preload="auto"></audio>
+    <audio id="bucket-audio" preload="auto">
+      <source src="./assets/audio/bucket.mp3" type="audio/mpeg" />
+      <source src="./assets/audio/bucket.wav" type="audio/wav" />
+    </audio>
+    <audio id="move-audio" preload="auto">
+      <source src="./assets/audio/move.mp3" type="audio/mpeg" />
+      <source src="./assets/audio/move.wav" type="audio/wav" />
+    </audio>
+    <audio id="cheer-audio" preload="auto">
+      <source src="./assets/audio/cheer.mp3" type="audio/mpeg" />
+      <source src="./assets/audio/cheer.wav" type="audio/wav" />
+    </audio>
   </body>
 </html>

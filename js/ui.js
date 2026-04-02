@@ -7,6 +7,17 @@ let gameEngine;
 let selectedDifficulty = 'easy';
 let isPlaying = false;
 
+// Global error tracker for debugging
+window.addEventListener('error', (event) => {
+  console.error('Unhandled JS error:', event.error || event.message);
+  showNotification(`Error: ${event.message} (see console)`, 'error');
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled rejection:', event.reason);
+  showNotification(`Promise error: ${event.reason}`, 'error');
+});
+
 // Notification system
 function showNotification(message, type = 'info') {
   const notification = document.getElementById('notification');
@@ -158,6 +169,16 @@ function setupInputHandlers() {
         e.preventDefault();
         gameEngine.movePlayer('right');
         break;
+      case '[':
+        // Go to previous level
+        e.preventDefault();
+        gameEngine.goToLevel(gameEngine.currentLevelIndex - 1);
+        break;
+      case ']':
+        // Go to next level
+        e.preventDefault();
+        gameEngine.goToLevel(gameEngine.currentLevelIndex + 1);
+        break;
     }
   });
 
@@ -193,6 +214,36 @@ function setupInputHandlers() {
   document.getElementById('reset-btn').addEventListener('click', () => {
     gameEngine.resetLevel();
   });
+
+  // Level navigation buttons
+  const prevLevelBtn = document.getElementById('prev-level-btn');
+  const nextLevelBtn = document.getElementById('next-level-btn');
+
+  if (prevLevelBtn) {
+    prevLevelBtn.addEventListener('click', () => {
+      gameEngine.goToLevel(gameEngine.currentLevelIndex - 1);
+    });
+  }
+
+  if (nextLevelBtn) {
+    nextLevelBtn.addEventListener('click', () => {
+      gameEngine.goToLevel(gameEngine.currentLevelIndex + 1);
+    });
+  }
+
+  const muteBtn = document.getElementById('mute-btn');
+  if (muteBtn) {
+    muteBtn.addEventListener('click', () => {
+      toggleMute();
+    });
+  }
+
+  const undoBtn = document.getElementById('undo-btn');
+  if (undoBtn) {
+    undoBtn.addEventListener('click', () => {
+      gameEngine.undoMove();
+    });
+  }
 }
 
 // Initialize UI
@@ -203,26 +254,65 @@ function initUI() {
 
 function setupDifficultySelection() {
   const buttons = document.querySelectorAll('.difficulty-btn');
+  if (buttons.length === 0) {
+    console.warn('No difficulty buttons found');
+    return;
+  }
+
   buttons.forEach((btn) => {
     btn.addEventListener('click', () => {
+      // Immediate visual update
       buttons.forEach((b) => b.classList.remove('selected'));
       btn.classList.add('selected');
+
       selectedDifficulty = btn.dataset.difficulty;
       gameEngine.setDifficulty(selectedDifficulty);
-      document.getElementById('play-btn').disabled = false;
+
+      // If already playing, immediately apply the difficulty changes
+      if (isPlaying) {
+        resetTimer();
+      }
+
+      const playBtn = document.getElementById('play-btn');
+      if (playBtn) {
+        playBtn.disabled = false;
+      }
+
+      showNotification(`Difficulty set to ${selectedDifficulty}`, 'success');
     });
   });
 
-  // Set default easy
+  // Set default easy visually and at least once
+  selectedDifficulty = 'easy';
+  const easyButton = document.querySelector('.difficulty-btn[data-difficulty="easy"]');
+  if (easyButton) {
+    buttons.forEach((b) => b.classList.remove('selected'));
+    easyButton.classList.add('selected');
+  }
   gameEngine.setDifficulty('easy');
 
-  document.getElementById('play-btn').addEventListener('click', () => {
-    isPlaying = true;
-    gameEngine.initGame(levels[0]);
-    showNotification(
-      'Welcome to charity: water Push the Box! Push buckets onto dry soil to water them.',
-      'info'
-    );
-    startTimer();
-  });
+  const playBtn = document.getElementById('play-btn');
+  if (playBtn) {
+    playBtn.addEventListener('click', () => {
+      isPlaying = true;
+
+      // Load and resume from saved progress
+      const savedProgress = loadProgress();
+      gameEngine.currentLevelIndex = Number.isInteger(savedProgress.currentLevel)
+        ? savedProgress.currentLevel
+        : 0;
+      gameEngine.completedLevels = Array.isArray(savedProgress.completedLevels)
+        ? savedProgress.completedLevels
+        : [];
+      gameEngine.initGame(levels[gameEngine.currentLevelIndex]);
+
+      showNotification(
+        `Resuming Level ${gameEngine.currentLevelIndex + 1}. Push buckets onto dry soil to water them.`,
+        'info'
+      );
+      resetTimer();
+    });
+  } else {
+    console.warn('Play button not found');
+  }
 }

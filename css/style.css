@@ -423,9 +423,80 @@ footer a:hover {
   color: var(--charcoal);
 }
 
+.app-btn--muted {
+  opacity: 0.7;
+  box-shadow: inset 0 0 0 2px var(--dark-blue);
+}
+
+.floating-mute-btn {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 50%;
+  border: none;
+  background-color: var(--jerry-can-yellow);
+  color: var(--charcoal);
+  font-size: 1.4rem;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+  z-index: 999;
+}
+
+.floating-mute-btn:hover {
+  transform: scale(1.05);
+}
+
+.floating-mute-btn.app-btn--muted {
+  background-color: #d1d1d1;
+  color: #555;
+}
+
+.circle-btn {
+  margin-left: 0.8rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  border: 0;
+  background: var(--jerry-can-yellow);
+  color: var(--charcoal);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.circle-btn:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+
+.circle-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .difficulty-btn.selected {
   background-color: var(--dark-blue);
   color: var(--white);
+  transition: none; /* eliminate perceptible color-change delay */
+}
+
+.difficulty-btn {
+  transition: none; /* instant color set on click */
 }
 
 #play-btn {

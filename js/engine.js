@@ -66,14 +66,104 @@ function getMaxScoreForLevel(levelData) {
   return soils.length * 50 + 100;
 }
 
+let isMuted = false;
+
+function saveMuteState(muted) {
+  localStorage.setItem('charityWaterMuted', JSON.stringify(Boolean(muted)));
+}
+
+function loadMuteState() {
+  const saved = localStorage.getItem('charityWaterMuted');
+  if (saved === null) return false;
+  try {
+    return JSON.parse(saved);
+  } catch (e) {
+    return false;
+  }
+}
+
+function updateMuteButton() {
+  const button = document.getElementById('mute-btn');
+  if (!button) return;
+  button.textContent = isMuted ? '🔇' : '🔊';
+  button.classList.toggle('app-btn--muted', isMuted);
+  button.setAttribute('aria-label', isMuted ? 'Unmute' : 'Mute');
+}
+
+function setMuted(muted) {
+  isMuted = Boolean(muted);
+  const allAudio = document.querySelectorAll('audio');
+  allAudio.forEach((audio) => {
+    audio.muted = isMuted;
+  });
+  saveMuteState(isMuted);
+  updateMuteButton();
+}
+
+function toggleMute() {
+  setMuted(!isMuted);
+  showNotification(isMuted ? 'Sound muted' : 'Sound unmuted', 'info');
+}
+
 function playBucketAudio() {
-  const audio = document.getElementById('bucket-audio');
-  if (audio && audio.src) audio.play();
+  // Deprecated: bucket sound no longer separate; use move audio for all movements
+  if (isMuted) return;
+  const audio = document.getElementById('move-audio');
+  if (!audio) return;
+
+  audio.currentTime = 0;
+  audio.play().catch(() => {
+    // Autoplay restrictions may block until user interacts.
+  });
 }
 
 function playMoveAudio() {
+  if (isMuted) return;
   const audio = document.getElementById('move-audio');
-  if (audio && audio.src) audio.play();
+  if (!audio) return;
+
+  audio.currentTime = 0;
+  audio.play().catch(() => {
+    // Autoplay restrictions may block until user interacts.
+  });
+}
+
+function playCheerAudio() {
+  if (isMuted) return;
+  const audio = document.getElementById('cheer-audio');
+  if (!audio) return;
+
+  audio.currentTime = 0;
+  audio.play().catch(() => {
+    // Autoplay restrictions may block until user interacts.
+  });
+
+  // Stop after 2 seconds so only a short cheer plays
+  setTimeout(() => {
+    audio.pause();
+    audio.currentTime = 0;
+  }, 2000);
+}
+
+// Progress saving functions
+function saveProgress(currentLevelIndex, completedLevels) {
+  const progress = {
+    currentLevel: currentLevelIndex,
+    completedLevels: completedLevels,
+  };
+  localStorage.setItem('charityWaterProgress', JSON.stringify(progress));
+}
+
+function loadProgress() {
+  const saved = localStorage.getItem('charityWaterProgress');
+  if (saved) {
+    return JSON.parse(saved);
+  }
+  return { currentLevel: 0, completedLevels: [] };
+}
+
+function clearProgress() {
+  localStorage.removeItem('charityWaterProgress');
 }
 
 function arraysEqual(a, b) {
@@ -196,7 +286,10 @@ function processMove(state, dx, dy) {
 
 class GameEngine {
   constructor() {
-    this.currentLevelIndex = 0;
+    // Load progress from localStorage
+    const progress = loadProgress();
+    this.currentLevelIndex = progress.currentLevel;
+    this.completedLevels = progress.completedLevels || [];
     this.score = 0;
     this.levelScore = 0;
     this.state = null;
@@ -204,10 +297,39 @@ class GameEngine {
     this.milestone25 = false;
     this.milestone50 = false;
     this.milestone75 = false;
+    this.history = [];
+
+    // Restore mute state and button
+    setMuted(loadMuteState());
   }
 
   setDifficulty(diff) {
     setDifficulty(diff);
+  }
+
+  // Navigate to a specific level (respects lock system)
+  goToLevel(levelIndex) {
+    if (levelIndex < 0 || levelIndex >= levels.length) {
+      showNotification('Invalid level', 'error');
+      return false;
+    }
+    // Can only go to levels already completed, or the next unlocked level
+    if (levelIndex <= Math.max(...this.completedLevels, -1) + 1) {
+      this.currentLevelIndex = levelIndex;
+      this.levelScore = 0;
+      this.milestone25 = false;
+      this.milestone50 = false;
+      this.milestone75 = false;
+      this.initGame(levels[levelIndex]);
+      resetTimer();
+      return true;
+    } else {
+      showNotification(
+        `Level ${levelIndex + 1} is locked. Complete level ${Math.max(...this.completedLevels, -1) + 2} first.`,
+        'error'
+      );
+      return false;
+    }
   }
 
   initGame(levelData) {
@@ -216,6 +338,8 @@ class GameEngine {
     this.milestone25 = false;
     this.milestone50 = false;
     this.milestone75 = false;
+    this.history = [];
+    this.updateUndoButton();
     this.render();
     this.updateScore();
     this.updateMoves();
@@ -258,6 +382,50 @@ class GameEngine {
           : 'linear-gradient(90deg, var(--primary), var(--muted))';
   }
 
+  pushHistory() {
+    if (!this.state) return;
+    const snapshot = {
+      background: cloneGrid(this.state.background),
+      player: { ...this.state.player },
+      buckets: this.state.buckets.map((b) => ({ ...b })),
+      soils: this.state.soils.map((s) => ({ ...s })),
+      moves: this.state.moves || 0,
+      score: this.score,
+      levelScore: this.levelScore,
+    };
+    this.history.push(snapshot);
+    this.updateUndoButton();
+  }
+
+  undoMove() {
+    if (!this.history.length) {
+      showNotification('No move to undo', 'info');
+      return;
+    }
+
+    const snapshot = this.history.pop();
+    this.state.background = cloneGrid(snapshot.background);
+    this.state.player = { ...snapshot.player };
+    this.state.buckets = snapshot.buckets.map((b) => ({ ...b }));
+    this.state.soils = snapshot.soils.map((s) => ({ ...s }));
+    this.state.moves = snapshot.moves;
+    this.score = snapshot.score;
+    this.levelScore = snapshot.levelScore;
+
+    this.render();
+    this.updateScore();
+    this.updateMoves();
+    this.updateUndoButton();
+
+    showNotification('Move undone', 'success');
+  }
+
+  updateUndoButton() {
+    const button = document.getElementById('undo-btn');
+    if (!button) return;
+    button.disabled = this.history.length === 0;
+  }
+
   movePlayer(direction) {
     if (this.isMoving || !isPlaying) return;
 
@@ -273,19 +441,16 @@ class GameEngine {
     const result = processMove(this.state, move.dx, move.dy);
     if (!result) return;
 
-    const oldBuckets = [...this.state.buckets.map((b) => ({ ...b }))];
+    // Save current state before applying move
+    this.pushHistory();
 
     const nextMoves = (this.state.moves || 0) + 1;
     this.state = { ...result.newState, moves: nextMoves };
     this.score = Math.max(0, this.score + result.scoreChange);
     this.levelScore += result.scoreChange;
 
-    // Play audio
-    if (!arraysEqual(oldBuckets, result.newState.buckets)) {
-      playBucketAudio();
-    } else {
-      playMoveAudio();
-    }
+    // Play footstep audio for all valid moves (no separate bucket sound)
+    playMoveAudio();
     this.updateScore();
     this.updateMoves();
 
@@ -345,16 +510,31 @@ class GameEngine {
     this.render();
 
     const finishedLevelNumber = this.currentLevelIndex + 1;
+
+    // Mark level as completed and save progress
+    if (!this.completedLevels.includes(this.currentLevelIndex)) {
+      this.completedLevels.push(this.currentLevelIndex);
+    }
+    saveProgress(this.currentLevelIndex, this.completedLevels);
+
     showNotification(`Level ${finishedLevelNumber} complete!`, 'success');
+
+    // Play a short cheer sound when completing the level
+    playCheerAudio();
 
     if (finishedLevelNumber === levels.length) {
       triggerConfetti();
       setTimeout(() => triggerConfetti(), 400);
     }
 
+    // Do not allow undo after level-complete state is shown
+    this.history = [];
+    this.updateUndoButton();
+
     setTimeout(() => {
       this.currentLevelIndex += 1;
       if (this.currentLevelIndex < levels.length) {
+        saveProgress(this.currentLevelIndex, this.completedLevels);
         this.initGame(levels[this.currentLevelIndex]);
         resetTimer();
       } else {
@@ -375,10 +555,14 @@ class GameEngine {
   }
 
   resetGame() {
-    this.currentLevelIndex = 0;
+    // Reset to saved progress rather than always level 0
+    const progress = loadProgress();
+    this.currentLevelIndex = progress.currentLevel;
+    this.completedLevels = progress.completedLevels || [];
     this.score = 0;
-    this.initGame(levels[0]);
+    this.initGame(levels[this.currentLevelIndex]);
     resetTimer();
+    saveProgress(this.currentLevelIndex, this.completedLevels);
   }
 
   updateScore() {
@@ -429,6 +613,8 @@ class GameEngine {
         bucketCell.appendChild(bucketEntity);
       }
     });
+
+    this.updateUndoButton();
 
     // For completed flower tiles, show a flower icon overlay
     for (let y = 0; y < 9; y++) {
