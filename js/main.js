@@ -7,12 +7,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize UI
   initUI();
 
-  // Start the game
+  // Start game immediately with default difficulty
+  selectedDifficulty = 'easy';
+  gameEngine.setDifficulty(selectedDifficulty);
   gameEngine.initGame(levels[0]);
-
-  // Show welcome message
+  isPlaying = true;
+  startTimer();
   showNotification(
-    'Welcome to charity: water Push the Box! Push buckets onto dry soil to water them.',
+    'Game started on Easy by default. Use difficulty controls at top to change anytime.',
     'info'
   );
 });

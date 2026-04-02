@@ -7,10 +7,82 @@ const TILE = {
   SOIL: 3,
   PLAYER: 4,
   WATERED: 5,
-  FLOWER: 6,
-  PUDDLE: 7,
+  PUDDLE: 6,
+  FLOWER: 7,
 };
+// Difficulty and timer globals
+let difficulty = 'normal';
+let timerInterval;
+let timeRemaining = 120;
+let difficultyBonus = 0;
 
+function setDifficulty(diff) {
+  difficulty = diff;
+  if (diff === 'easy') {
+    timeRemaining = Infinity;
+    difficultyBonus = 0;
+  } else if (diff === 'normal') {
+    timeRemaining = 120;
+    difficultyBonus = 50;
+  } else if (diff === 'hard') {
+    timeRemaining = 30;
+    difficultyBonus = 100;
+  }
+}
+
+function startTimer() {
+  if (timeRemaining === Infinity) {
+    document.getElementById('timer').textContent = '--:--';
+    return;
+  }
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timeRemaining--;
+    updateTimerDisplay();
+    if (timeRemaining <= 0) {
+      clearInterval(timerInterval);
+      showModal("Time's Up!", 'You ran out of time. Try again!', 'Restart', () => {
+        gameEngine.resetGame();
+      });
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const minutes = Math.floor(timeRemaining / 60);
+  const seconds = timeRemaining % 60;
+  document.getElementById('timer').textContent =
+    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  setDifficulty(difficulty);
+  startTimer();
+}
+
+function getMaxScoreForLevel(levelData) {
+  const { soils } = parseLevel(levelData);
+  return soils.length * 50 + 100;
+}
+
+function playBucketAudio() {
+  const audio = document.getElementById('bucket-audio');
+  if (audio && audio.src) audio.play();
+}
+
+function playMoveAudio() {
+  const audio = document.getElementById('move-audio');
+  if (audio && audio.src) audio.play();
+}
+
+function arraysEqual(a, b) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].x !== b[i].x || a[i].y !== b[i].y) return false;
+  }
+  return true;
+}
 function cloneGrid(grid) {
   return grid.map((row) => [...row]);
 }
@@ -73,21 +145,26 @@ function processMove(state, dx, dy) {
     const blockedByBucket = buckets.some((b) => b.x === pushX && b.y === pushY);
     if (blockedByBucket) return null;
 
+    // Before moving bucket, if its current position is watered, turn to soil
+    if (newBg[newY][newX] === TILE.WATERED) {
+      newBg[newY][newX] = TILE.SOIL;
+    }
+
+    // Move bucket
     newBuckets = buckets.map((b, i) => (i === bucketIdx ? { x: pushX, y: pushY } : { ...b }));
 
-    const remainingBuckets = [];
-    newBuckets.forEach((bucket) => {
-      if (newBg[bucket.y][bucket.x] === TILE.SOIL) {
-        newBg[bucket.y][bucket.x] = TILE.WATERED;
-        scoreChange += 50;
-        events.push({ type: 'watered', x: bucket.x, y: bucket.y });
-      } else {
-        remainingBuckets.push(bucket);
-      }
-    });
-
-    newBuckets = remainingBuckets;
+    // After moving, if new position is soil, turn to watered
+    if (newBg[pushY][pushX] === TILE.SOIL) {
+      newBg[pushY][pushX] = TILE.WATERED;
+      scoreChange += 50;
+      events.push({ type: 'watered', x: pushX, y: pushY });
+    }
   } else {
+    // Player move, if leaving a watered tile, turn to soil
+    if (newBg[player.y][player.x] === TILE.WATERED) {
+      newBg[player.y][player.x] = TILE.SOIL;
+    }
+
     if (!isWalkable(background, newX, newY)) return null;
   }
 
@@ -121,12 +198,24 @@ class GameEngine {
   constructor() {
     this.currentLevelIndex = 0;
     this.score = 0;
+    this.levelScore = 0;
     this.state = null;
     this.isMoving = false;
+    this.milestone25 = false;
+    this.milestone50 = false;
+    this.milestone75 = false;
+  }
+
+  setDifficulty(diff) {
+    setDifficulty(diff);
   }
 
   initGame(levelData) {
     this.state = parseLevel(levelData);
+    this.levelScore = 0;
+    this.milestone25 = false;
+    this.milestone50 = false;
+    this.milestone75 = false;
     this.render();
     this.updateScore();
     this.updateMoves();
@@ -170,7 +259,7 @@ class GameEngine {
   }
 
   movePlayer(direction) {
-    if (this.isMoving) return;
+    if (this.isMoving || !isPlaying) return;
 
     const map = {
       up: { dx: 0, dy: -1 },
@@ -184,11 +273,37 @@ class GameEngine {
     const result = processMove(this.state, move.dx, move.dy);
     if (!result) return;
 
+    const oldBuckets = [...this.state.buckets.map((b) => ({ ...b }))];
+
     const nextMoves = (this.state.moves || 0) + 1;
     this.state = { ...result.newState, moves: nextMoves };
     this.score = Math.max(0, this.score + result.scoreChange);
+    this.levelScore += result.scoreChange;
+
+    // Play audio
+    if (!arraysEqual(oldBuckets, result.newState.buckets)) {
+      playBucketAudio();
+    } else {
+      playMoveAudio();
+    }
     this.updateScore();
     this.updateMoves();
+
+    // Check milestones
+    const maxScore = getMaxScoreForLevel(levels[this.currentLevelIndex]);
+    const progress = this.levelScore / maxScore;
+    if (progress >= 0.25 && !this.milestone25) {
+      this.milestone25 = true;
+      showNotification('25% complete! Keep going!', 'success');
+    }
+    if (progress >= 0.5 && !this.milestone50) {
+      this.milestone50 = true;
+      showNotification('50% complete! Halfway there!', 'success');
+    }
+    if (progress >= 0.75 && !this.milestone75) {
+      this.milestone75 = true;
+      showNotification('75% complete! Almost done!', 'success');
+    }
 
     if (result.puddlePenalty) {
       showNotification('☠️ −10 points · Contaminated puddle', 'error');
@@ -221,7 +336,10 @@ class GameEngine {
       }
     }
 
-    this.score = Math.max(0, this.score + 100);
+    // Clear buckets array so they don't render on top of flowers
+    this.state.buckets = [];
+
+    this.score = Math.max(0, this.score + 100 + difficultyBonus);
     this.updateScore();
     this.updateMoves();
     this.render();
@@ -238,6 +356,7 @@ class GameEngine {
       this.currentLevelIndex += 1;
       if (this.currentLevelIndex < levels.length) {
         this.initGame(levels[this.currentLevelIndex]);
+        resetTimer();
       } else {
         this.gameComplete();
       }
@@ -259,6 +378,7 @@ class GameEngine {
     this.currentLevelIndex = 0;
     this.score = 0;
     this.initGame(levels[0]);
+    resetTimer();
   }
 
   updateScore() {
@@ -309,6 +429,22 @@ class GameEngine {
         bucketCell.appendChild(bucketEntity);
       }
     });
+
+    // For completed flower tiles, show a flower icon overlay
+    for (let y = 0; y < 9; y++) {
+      for (let x = 0; x < 9; x++) {
+        if (this.state.background[y][x] === TILE.FLOWER) {
+          const flowerCell = gameBoard.children[y * 9 + x];
+          if (flowerCell) {
+            const flowerEntity = document.createElement('img');
+            flowerEntity.className = 'entity flower';
+            flowerEntity.src = './assets/svgs/Flower.svg';
+            flowerEntity.alt = 'Flower';
+            flowerCell.appendChild(flowerEntity);
+          }
+        }
+      }
+    }
   }
 }
 

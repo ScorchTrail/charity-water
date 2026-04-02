@@ -3,6 +3,10 @@
 // Global game engine instance
 let gameEngine;
 
+// Difficulty selection
+let selectedDifficulty = 'easy';
+let isPlaying = false;
+
 // Notification system
 function showNotification(message, type = 'info') {
   const notification = document.getElementById('notification');
@@ -127,7 +131,7 @@ function createConfettiParticle() {
 function setupInputHandlers() {
   // Keyboard controls
   document.addEventListener('keydown', (e) => {
-    if (gameEngine.isMoving) return;
+    if (gameEngine.isMoving || !isPlaying) return;
 
     switch (e.key) {
       case 'ArrowUp':
@@ -162,6 +166,7 @@ function setupInputHandlers() {
   dpadButtons.forEach((button) => {
     button.addEventListener('touchstart', (e) => {
       e.preventDefault();
+      if (!isPlaying) return;
       button.classList.add('pressed');
       const direction = button.dataset.direction;
       gameEngine.movePlayer(direction);
@@ -173,6 +178,7 @@ function setupInputHandlers() {
 
     button.addEventListener('mousedown', (e) => {
       e.preventDefault();
+      if (!isPlaying) return;
       button.classList.add('pressed');
       const direction = button.dataset.direction;
       gameEngine.movePlayer(direction);
@@ -191,5 +197,32 @@ function setupInputHandlers() {
 
 // Initialize UI
 function initUI() {
+  setupDifficultySelection();
   setupInputHandlers();
+}
+
+function setupDifficultySelection() {
+  const buttons = document.querySelectorAll('.difficulty-btn');
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      buttons.forEach((b) => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedDifficulty = btn.dataset.difficulty;
+      gameEngine.setDifficulty(selectedDifficulty);
+      document.getElementById('play-btn').disabled = false;
+    });
+  });
+
+  // Set default easy
+  gameEngine.setDifficulty('easy');
+
+  document.getElementById('play-btn').addEventListener('click', () => {
+    isPlaying = true;
+    gameEngine.initGame(levels[0]);
+    showNotification(
+      'Welcome to charity: water Push the Box! Push buckets onto dry soil to water them.',
+      'info'
+    );
+    startTimer();
+  });
 }
