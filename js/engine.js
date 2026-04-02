@@ -122,6 +122,8 @@ function playMoveAudio() {
   const audio = document.getElementById('move-audio');
   if (!audio) return;
 
+  // ensure move clip is loud enough and full volume by default
+  audio.volume = 1.0; // 0.0 to 1.0 (max)
   audio.currentTime = 0;
   audio.play().catch(() => {
     // Autoplay restrictions may block until user interacts.
@@ -322,6 +324,7 @@ class GameEngine {
       this.milestone75 = false;
       this.initGame(levels[levelIndex]);
       resetTimer();
+      if (typeof updateLevelSelector === 'function') updateLevelSelector();
       return true;
     } else {
       showNotification(
@@ -446,7 +449,7 @@ class GameEngine {
 
     const nextMoves = (this.state.moves || 0) + 1;
     this.state = { ...result.newState, moves: nextMoves };
-    this.score = Math.max(0, this.score + result.scoreChange);
+    this.score = this.score + result.scoreChange;
     this.levelScore += result.scoreChange;
 
     // Play footstep audio for all valid moves (no separate bucket sound)
@@ -508,6 +511,7 @@ class GameEngine {
     this.updateScore();
     this.updateMoves();
     this.render();
+    if (typeof updateLevelSelector === 'function') updateLevelSelector();
 
     const finishedLevelNumber = this.currentLevelIndex + 1;
 
@@ -551,6 +555,7 @@ class GameEngine {
 
   resetLevel() {
     this.initGame(levels[this.currentLevelIndex]);
+    resetTimer();
     showNotification('Level Reset', 'info');
   }
 
@@ -562,6 +567,7 @@ class GameEngine {
     this.score = 0;
     this.initGame(levels[this.currentLevelIndex]);
     resetTimer();
+    if (typeof updateLevelSelector === 'function') updateLevelSelector();
     saveProgress(this.currentLevelIndex, this.completedLevels);
   }
 

@@ -240,6 +240,54 @@ main {
   gap: 1rem;
 }
 
+.level-selector {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(44px, 1fr));
+  gap: 0.5rem;
+  width: min(420px, 90vw);
+  margin-top: 0.75rem;
+}
+
+.level-selector button {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--muted);
+  color: var(--foreground);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.level-selector button:enabled:hover {
+  transform: scale(1.06);
+  background: var(--primary);
+  color: var(--white);
+}
+
+.level-selector button::after {
+  content: '';
+}
+
+.level-selector button.unlocked {
+  background: var(--jerry-can-yellow);
+  color: var(--charcoal);
+}
+
+.level-selector button.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.level-selector button.current {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(69, 143, 255, 0.25);
+}
+
 .reset-button {
   background-color: var(--primary);
   color: var(--primary-foreground);

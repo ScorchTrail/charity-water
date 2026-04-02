@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   gameEngine.initGame(levels[savedProgress.currentLevel]);
   isPlaying = true;
   startTimer();
+  if (typeof updateLevelSelector === 'function') updateLevelSelector();
   showNotification(
     `Game started on Easy. Level ${savedProgress.currentLevel + 1}. Use difficulty controls at top to change anytime.`,
     'info'

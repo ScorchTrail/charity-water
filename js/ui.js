@@ -246,10 +246,55 @@ function setupInputHandlers() {
   }
 }
 
+// Level selector
+function setupLevelSelector() {
+  const levelSelector = document.getElementById('level-selector');
+  if (!levelSelector) return;
+
+  levelSelector.innerHTML = '';
+
+  for (let i = 0; i < levels.length; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = String(i + 1);
+    btn.dataset.level = i;
+    btn.type = 'button';
+    btn.className = 'locked';
+
+    btn.addEventListener('click', () => {
+      if (!btn.disabled && gameEngine.goToLevel(i)) {
+        isPlaying = true;
+        showNotification(`Switched to Level ${i + 1}`, 'success');
+      }
+    });
+
+    levelSelector.appendChild(btn);
+  }
+
+  updateLevelSelector();
+}
+
+function updateLevelSelector() {
+  const levelSelector = document.getElementById('level-selector');
+  if (!levelSelector || !gameEngine) return;
+
+  const maxUnlocked = Math.max(...gameEngine.completedLevels, -1) + 1;
+
+  Array.from(levelSelector.children).forEach((btn, idx) => {
+    const target = idx;
+    const isUnlocked = target <= maxUnlocked;
+
+    btn.disabled = !isUnlocked;
+    btn.classList.toggle('unlocked', isUnlocked);
+    btn.classList.toggle('locked', !isUnlocked);
+    btn.classList.toggle('current', target === gameEngine.currentLevelIndex);
+  });
+}
+
 // Initialize UI
 function initUI() {
   setupDifficultySelection();
   setupInputHandlers();
+  setupLevelSelector();
 }
 
 function setupDifficultySelection() {
