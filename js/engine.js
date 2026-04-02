@@ -300,6 +300,8 @@ class GameEngine {
     this.milestone50 = false;
     this.milestone75 = false;
     this.history = [];
+    this.undoStreak = 0;
+    this.hasEncouragedMoveCount = false;
 
     // Restore mute state and button
     setMuted(loadMuteState());
@@ -415,6 +417,15 @@ class GameEngine {
     this.score = snapshot.score;
     this.levelScore = snapshot.levelScore;
 
+    this.undoStreak += 1;
+    if (this.undoStreak > 5) {
+      showNotification(
+        'It is solvable — you’re almost there. Maybe try looking at it upside down.',
+        'info'
+      );
+      this.undoStreak = 0;
+    }
+
     this.render();
     this.updateScore();
     this.updateMoves();
@@ -451,6 +462,18 @@ class GameEngine {
     this.state = { ...result.newState, moves: nextMoves };
     this.score = this.score + result.scoreChange;
     this.levelScore += result.scoreChange;
+
+    // Reset undo streak when player makes a new move
+    this.undoStreak = 0;
+
+    // Encourage after long playthrough
+    if (nextMoves > 50 && !this.hasEncouragedMoveCount) {
+      this.hasEncouragedMoveCount = true;
+      showNotification(
+        'Hang in there! It is solvable — you’re almost there. Maybe try looking at it upside down.',
+        'info'
+      );
+    }
 
     // Play footstep audio for all valid moves (no separate bucket sound)
     playMoveAudio();
@@ -526,10 +549,9 @@ class GameEngine {
     // Play a short cheer sound when completing the level
     playCheerAudio();
 
-    if (finishedLevelNumber === levels.length) {
-      triggerConfetti();
-      setTimeout(() => triggerConfetti(), 400);
-    }
+    // Celebratory confetti for every level complete
+    triggerConfetti();
+    setTimeout(() => triggerConfetti(), 400);
 
     // Do not allow undo after level-complete state is shown
     this.history = [];
